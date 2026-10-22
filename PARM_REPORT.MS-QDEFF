@@ -1,0 +1,39 @@
+let
+    Source =
+        Excel.CurrentWorkbook(){[Name = "tblReportParameters"]}[Content],
+
+    ChangedTypes =
+        Table.TransformColumnTypes(
+            Source,
+            {
+                {"Parameter", type text},
+                {"Value", type text}
+            }
+        ),
+
+    GetParameter = (ParameterName as text) as nullable text =>
+        let
+            MatchingRows =
+                Table.SelectRows(
+                    ChangedTypes,
+                    each [Parameter] = ParameterName
+                ),
+
+            ParameterValue =
+                if Table.RowCount(MatchingRows) = 0 then
+                    null
+                else
+                    Text.Trim(Text.From(MatchingRows{0}[Value]))
+        in
+            ParameterValue,
+
+    Output = [
+        ReportingEntity = GetParameter("Reporting Entity"),
+        BalanceVersion = GetParameter("Balance Version"),
+        Market = GetParameter("Market"),
+        TransactionCode = GetParameter("Transaction Code"),
+        FromPeriod = GetParameter("From Period"),
+        ToPeriod = GetParameter("To Period")
+    ]
+in
+    Output
